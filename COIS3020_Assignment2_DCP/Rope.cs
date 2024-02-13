@@ -63,5 +63,55 @@ namespace COIS3020_Assignment2_DCP
         {
             //Showing the root
         }
+
+        //Node
+        private class Node
+        {
+            public string s;
+            public int length;
+            public Node left, right;
+            public Node root;
+            public Node()
+            {
+                this.s = s;
+                this.length = 0;
+                this.left = left;
+                this.right = right;
+                this.root = root;
+            }
+
+            public Node Build(string s, int i, int j)
+            {
+                return;
+            }
+            public Node Concatenate(Node p, Node q)
+            {
+                return;
+            }
+
+            public Node Split(Node p)
+            {
+                //Making a divide line via root and point p, which is close to centre.
+
+                //Creating 2 trees
+
+                //Removing extra leaf nodes to balance
+            }
+
+            public Node Rebalance()
+            {
+                //Substr, concat(rope 1 and rope 2)
+                    //Let
+                       //If left:
+                            //Do rope 1
+                       //If right
+                            //Do rope 2
+                        // else
+                            //subtract rope2 - rope1 - left rope
+                    //in
+                        //Concat left and right
+                return;
+            }
+        }
     }
 }
