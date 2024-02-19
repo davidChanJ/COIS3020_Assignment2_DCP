@@ -18,22 +18,28 @@ namespace COIS3020_Assignment2_DCP
         //Inserting and Deleting
         public void Insert(string S, int i)
         {
-
+            //Getting data
         }
         public void Delete(int i, int j)
         {
+            //Choosing where to delete
 
+            //Search via series of Nodes(no array)
         }
 
         //Substrings
         public string subString(int i, int j)
         {
+            //Search in big string first
+
+            //Searches until finding a smaller part
             return S[i, j];
         }
 
         public int Find(string S)
         {
             int i = 0;
+            //Using a loop, similar to for loop but series of arrays
             if (S == null)
                 return i; //Return the first occurence of the character c    
             return -1;
@@ -51,6 +57,9 @@ namespace COIS3020_Assignment2_DCP
 
         public int Length()
         {
+            //Calculating via series of nodes' length
+
+            //Goes until the end
             return -1;
         }
 
