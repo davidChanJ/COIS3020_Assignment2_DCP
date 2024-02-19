@@ -110,6 +110,7 @@ namespace COIS3020_Assignment2_DCP
                             //subtract rope2 - rope1 - left rope
                     //in
                         //Concat left and right
+                        Concatenate(left, right);
                 return;
             }
         }
