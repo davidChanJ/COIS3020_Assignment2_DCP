@@ -55,11 +55,16 @@ namespace COIS3020_Assignment2_DCP
             //Possibly use for loop to find
         }
 
-        public int Length()
+        public int Length(Node node)
         {
-            //Assuming -1 as false
-            //Calculating via series of nodes' length
-
+            //Find if not null
+            if(node == null)
+                return 0;
+            //See if node is leaf:
+            if (node is LeafNode leaf)
+                return leaf.Length;
+            else if(node is InternalNode internalNode) //Check if it is internam node:
+                return Length(internalNode.Left) + Length(internalNode.Right);
             //Goes until the end
             return -1;
         }
@@ -71,7 +76,22 @@ namespace COIS3020_Assignment2_DCP
 
         public void PrintRope()
         {
+            PrintRope(root);
+        }
+
+        private void PrintRope(Node node)
+        {
             //Showing the root
+            if (Node is LeafNode leaf)
+                Console.WriteLine($"Lead Node: Length {leaf.Length}, String={leaf.Text}");
+            else if (Node is InternalNode internalNode)
+            {
+                Console.WriteLine("Internal Node: ");
+                Console.WriteLine("Left Child: ");
+                PrintRope(internalNode.Left);
+                Console.WriteLine("Right Child:");
+                PrintRope(internalNode.Right);
+            }
         }
 
         //Node
@@ -89,6 +109,8 @@ namespace COIS3020_Assignment2_DCP
                 this.right = right;
                 this.root = root;
             }
+
+            //Making internal node & child nodes?
 
             public Node Build(string s, int i, int j)
             {
