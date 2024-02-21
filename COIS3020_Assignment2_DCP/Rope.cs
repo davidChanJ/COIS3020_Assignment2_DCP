@@ -57,6 +57,7 @@ namespace COIS3020_Assignment2_DCP
 
         public int Length()
         {
+            //Assuming -1 as false
             //Calculating via series of nodes' length
 
             //Goes until the end
