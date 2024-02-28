@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,10 +10,12 @@ namespace COIS3020_Assignment2_DCP
     public class Rope
     {
         string S;
+        private Node root;
         //Constructor
         public Rope(string S)
         {
             this.S = S;
+            root = Build(S, 0, S.Length-1);
         }
 
         //Inserting and Deleting
@@ -95,56 +98,94 @@ namespace COIS3020_Assignment2_DCP
         }
 
         //Node
-        private class Node
+        public class Node
         {
-            public string s;
-            public int length;
+            public string s { get; set; }
+            public int Length { get; set; }
             public Node left, right;
-            public Node root;
+            public Node root { get; set; }
             public Node()
             {
                 this.s = s;
-                this.length = 0;
+                this.Length = 0;
                 this.left = left;
                 this.right = right;
                 this.root = root;
             }
 
             //Making internal node & child nodes?
+        }
 
-            public Node Build(string s, int i, int j)
+        public Node Build(string s, int i, int e)
+        {
+            //if start(i) is larger than end(j):
+            if (i > e)
+                return null;
+
+            //Base case
+            if (e - i + 1 <= THERESHOLD)
+                return new LeafNode
+                {
+                    Length = j - s + 1,
+                    TextReader = s.Substring(i, e - i + 1)
+                };
+            //Mid point
+            int mid = i + (e - i) / 2;
+
+            Node leftNode = Build(s, i, mid);
+            Node rightNode = Build(s, mid + 1, e);
+
+            //Return to internalNode:
+            return new InternalNode
             {
-                return;
-            }
-            public Node Concatenate(Node p, Node q)
+                left = leftNode,
+                right = rightNode
+            };
+        }
+        public Node Concatenate(Node p, Node q)
+        {
+            //Setting is p and q are null
+            if (p == null) return q;
+            if (q == null) return p;
+            //Check to reblance
+            if (Random.Next(p.Length + q.Length) < p.Length)
             {
-                return;
+                left = Concatenate(p, (p.Length - 1));
+                right = q;
             }
-
-            public Node Split(Node p)
+            else
             {
-                //Making a divide line via root and point p, which is close to centre.
-
-                //Creating 2 trees
-
-                //Removing extra leaf nodes to balance
+                return new InternalNode
+                {
+                    left = p,
+                    right = q
+                };
             }
+        }
 
-            public Node Rebalance()
-            {
-                //Substr, concat(rope 1 and rope 2)
-                    //Let
-                       //If left:
-                            //Do rope 1
-                       //If right
-                            //Do rope 2
-                        // else
-                            //subtract rope2 - rope1 - left rope
-                    //in
-                        //Concat left and right
-                        Concatenate(left, right);
-                return;
-            }
+        public Node Split(Node p)
+        {
+            //Making a divide line via root and point p, which is close to centre.
+
+            //Creating 2 trees
+
+            //Removing extra leaf nodes to balance
+        }
+
+        public Node Rebalance()
+        {
+            //Substr, concat(rope 1 and rope 2)
+            //Let
+            //If left:
+            //Do rope 1
+            //If right
+            //Do rope 2
+            // else
+            //subtract rope2 - rope1 - left rope
+            //in
+            //Concat left and right
+            Concatenate(left, right);
+            return;
         }
     }
 }
