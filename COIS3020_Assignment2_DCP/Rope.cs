@@ -320,14 +320,82 @@ namespace COIS3020_Assignment2_DCP {
             }
         }
 
-        public Node Split(Node p)
+        // Split
+        private RopeNode Split(RopeNode node, int index, out RopeNode leftRoot)
         {
-            //Making a divide line via root and point p, which is close to centre.
+            if (node == null)
+            {
+                leftRoot = null;
+                return null;
+            }
 
-            //Creating 2 trees
+            if (node.IsLeaf())
+            {
+                if (index >= node.Weight) // Entire node is in the left part
+                {
+                    leftRoot = node;
+                    return null; // Nothing on the right
+                }
+                else if (index == 0) // Entire node is in the right part
+                {
+                    leftRoot = null;
+                    return node;
+                }
+                else
+                {
+                    // Splitting a leaf node
+                    string leftData = node.Data.Substring(0, index);
+                    string rightData = node.Data.Substring(index);
 
-            //Removing extra leaf nodes to balance
-            return null;
+                    leftRoot = new RopeNode(leftData);
+                    return new RopeNode(rightData);
+                }
+            }
+
+            if (index < node.Weight)
+            {
+                // Split index is within the left subtree
+                RopeNode tempRight;
+                RopeNode newLeft = Split(node.Left, index, out tempRight);
+                leftRoot = newLeft;
+
+                if (tempRight == null)
+                {
+                    return node.Right; // Right subtree remains unchanged
+                }
+                else
+                {
+                    node.Left = tempRight; // Update left child of the node
+                                           // Recalculate weight for the current node as it may have changed
+                    node.Weight = CalculateTotalWeight(tempRight);
+                    return node; // Node now represents the right part
+                }
+            }
+            else
+            {
+                // Split index is within the right subtree or exactly at the weight
+                index -= node.Weight; // Adjust index relative to the right subtree
+                RopeNode tempLeft;
+                RopeNode newRight = Split(node.Right, index, out tempLeft);
+
+                if (tempLeft == null)
+                {
+                    leftRoot = node; // Left part includes the current node and its left subtree
+                    return newRight; // Right part is unchanged
+                }
+                else
+                {
+                    // Create a new node for the left part including the original left subtree
+                    // and the left part of the split right subtree
+                    leftRoot = new RopeNode(null)
+                    {
+                        Left = node.Left,
+                        Right = tempLeft,
+                        Weight = node.Weight // Weight remains the same for the left part
+                    };
+                    return newRight; // The right part of the split right subtree
+                }
+            }
         }
 
         public Node Rebalance()
