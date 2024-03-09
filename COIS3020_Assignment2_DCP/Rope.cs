@@ -1,75 +1,59 @@
-﻿using Microsoft.VisualBasic;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
+﻿
+using Microsoft.VisualBasic;
 using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
+
 using static COIS3020_Assignment2_DCP.Rope.Node;
 
-namespace COIS3020_Assignment2_DCP {
+namespace COIS3020_Assignment2_DCP
+{
 
-    public class RopeNode
-    {
-        public string Value { get; set; } // For leaf nodes, this holds the substring
-        public int Weight { get; set; } // Holds the total length of all characters in the left subtree
-        public RopeNode Left { get; set; }
-        public RopeNode Right { get; set; }
-        public bool IsLeaf() => Value != null;
-
-        public RopeNode(string value)
-        {
-            Value = value;
-            Weight = value != null ? value.Length : 0;
-            Left = Right = null;
-        }
-    }
     public class Rope
     {
-        string S;
-        private RopeNode Root { get; set; }
+        public Node Root;
+        //private RopeNode Root { get; set; }
+        private int SubstringMaxLength = 10;
         //Constructor
         public Rope(string S)
         {
-            this.S = S;
-            Root = ConstructRope(S);
+            Root = Build(S);
         }
 
-        private RopeNode ConstructRope(string S)
+        private Node Build(string S)
         {
+            // return empty node if S is empty
+            if (S.Length <= 0) return new Node();
+
             // Base case for recursion: when S length is 10 or less
-            if (S.Length <= 10)
+            if (S.Length <= SubstringMaxLength)
             {
-                return new RopeNode(S);
+                return new Node(S);
             }
 
             // Split S into roughly two equal parts
-            List<RopeNode> nodes = new List<RopeNode>();
-            for (int i = 0; i < S.Length; )
+            List<Node> nodes = new List<Node>();
+            for (int i = 0; i < S.Length;)
             {
-                int length = Math.Min(10, S.Length - i);
-                nodes.Add(new RopeNode(S.Substring(i, length)));
+                int length = Math.Min(SubstringMaxLength, S.Length - i);
+                nodes.Add(new Node(S.Substring(i, length)));
                 i += length;
             }
 
             // Recursively combine nodes into a balanced tree
             while (nodes.Count > 1)
             {
-                List<RopeNode> combinedNodes = new List<RopeNode>();
+                List<Node> combinedNodes = new List<Node>();
                 for (int i = 0; i < nodes.Count; i += 2)
                 {
                     if (i + 1 < nodes.Count)
                     {
-                        RopeNode newNode = new RopeNode(null)
+                        Node newNode = new Node(null)
                         {
                             Left = nodes[i],
                             Right = nodes[i + 1],
-                            Weight = nodes[i].Weight + (nodes[i].Left?.Weight ?? 0)
+                            Weight = nodes[i].Weight + nodes[i + 1].Weight
                         };
+                        //nodes[i].Parent = newNode;
+                        //nodes[i + 1].Parent = newNode;
                         combinedNodes.Add(newNode);
                     }
                     else
@@ -79,401 +63,462 @@ namespace COIS3020_Assignment2_DCP {
                 }
                 nodes = combinedNodes; // Prepare for next level
             }
-
             return nodes[0]; // The root of the constructed rope
         }
 
-        //Inserting and Deleting
+        private Node Concatenate(Node p, Node q)
+        {
+            if (p == null) return q;
+            if (q == null) return p;
+            if (p == null && q == null) return null;
+
+            Node root = new Node();
+            root.Left = p;
+            root.Right = q;
+            root.Weight = p.Weight + q.Weight;
+            return root;
+        }
+
+        //Split the rope with root p at index i and return the root of the right subtree
+        private (Node, Node) Split(Node p, int i)
+        {
+            // traverse to the node storing index i
+            int index;
+            Node tempNode;
+            List<Node> path;
+            (index, tempNode, path) = TravelToIndex(p, i);
+
+            // left of the node being splited
+            Node leftNode = new Node();
+            leftNode.PartOfString = tempNode.PartOfString.Substring(0, index);
+            leftNode.Weight = leftNode.PartOfString.Length;
+            // right of the node being splited
+            Node rightNode = new Node();
+            rightNode.PartOfString = tempNode.PartOfString.Substring(index);
+            rightNode.Weight = rightNode.PartOfString.Length;
+
+
+            //Node a = new Node();
+            //Node a2 = a;
+            //List<Node> aList = new List<Node>();
+            //Node b = new Node();
+            //Node b2 = b;
+            //List<Node> bList = new List<Node>();
+            //for (int j =0; j < path.Count; j ++)
+            //{
+            //    if (path[j + 1].Equals(path[j].Left))
+            //    {
+            //        b.Right = path[j].Right;
+            //    }
+            //}
+
+            Node leftNodeParent = new Node();
+            leftNodeParent.Left = leftNode;
+            leftNodeParent.Weight = leftNode.Weight;
+
+            Node rightNodeParent = new Node();
+            rightNodeParent.Right = rightNode;
+            rightNodeParent.Weight = rightNode.Weight;
+            for (int j = path.Count - 2; j > 0; j--)
+            {
+                Node leftNodeParent2 = new Node();
+                Node rightNodeParent2 = new Node();
+                if (path[j].Equals(path[j - 1].Left))
+                {
+                    //if (path[j + 1].Equals(path[j].Right))
+                    //{
+                    leftNodeParent2.Left = path[j].Left;
+                    leftNodeParent2.Right = leftNodeParent;
+                    leftNodeParent2.Weight = (leftNodeParent2.Right?.Weight ?? 0) + (leftNodeParent2.Left?.Weight ?? 0);
+
+                    rightNodeParent2.Right = rightNodeParent;
+                    rightNodeParent2.Weight = (rightNodeParent2.Right?.Weight ?? 0) + (rightNodeParent2.Left?.Weight ?? 0);
+                    //} else
+                    //{
+                    //    leftNodeParent2.Left = leftNodeParent;
+                    //}
+
+                }
+                else
+                {
+                    leftNodeParent2.Left = leftNodeParent;
+                    leftNodeParent2.Weight = (leftNodeParent2.Right?.Weight ?? 0) + (leftNodeParent2.Left?.Weight ?? 0);
+
+                    rightNodeParent2.Left = rightNodeParent;
+                    rightNodeParent2.Right = path[j].Right;
+                    rightNodeParent2.Weight = (rightNodeParent2.Right?.Weight ?? 0) + (rightNodeParent2.Left?.Weight ?? 0);
+                }
+                leftNodeParent = leftNodeParent2;
+                rightNodeParent = rightNodeParent2;
+            }
+
+            if (path[1].Equals(path[0].Left))
+            {
+                Node temp2 = new Node();
+                temp2.Left = leftNodeParent;
+                temp2.Weight = leftNodeParent.Weight;
+
+                Node temp3 = new Node();
+                temp3.Left = rightNodeParent;
+                temp3.Right = path[0].Right;
+                temp3.Weight = (temp3.Right?.Weight ?? 0) + (temp3.Left?.Weight ?? 0);
+
+                leftNodeParent = temp2;
+                rightNodeParent = temp3;
+            }
+            Node finalLeftNode = removeDuplicateParent(leftNodeParent, leftNodeParent.Weight - 1);
+            Node finalRightNode = removeDuplicateParent(rightNodeParent, 0);
+
+            return (finalLeftNode, finalRightNode);
+        }
+
+        // OPTIMIZATION:
+        // After a Split, compress the path back to the root to ensure that binary tree is full, i.e. each non-leaf node has two non-empty children 
+        // for path traverse from node root to index i
+        // remove parent with weight same with its child
+        private Node removeDuplicateParent(Node node, int i)
+        {
+            // get the path to index i
+            (_, _, List<Node> a) = TravelToIndex(node, i);
+            for (int j = a.Count - 1; j >= 2; j--)
+            {
+                // parent have the same weight with its left/right child
+                if (a[j].Weight == a[j - 1].Weight)
+                {
+                    if (a[j - 1].Equals(a[j - 2].Left))
+                    {
+                        a[j - 2].Left = a[j];
+                        a[j - 1] = a[j];
+                    }
+                    else
+                    {
+                        a[j - 2].Right = a[j];
+                        a[j - 1] = a[j];
+                    }
+                }
+            }
+            // if root weight == root left/right child weight
+            if (a[0].Weight == a[1].Weight)
+            {
+                return a[1];
+            }
+            return a[0];
+        }
+
+
         public void Insert(string S, int i)
         {
-            //Getting data
-            if (i < 0 || i > S.Length)
+            // validate data
+            if (i < 0 || i > Root.Weight)
             {
-                throw new ArgumentOutOfRangeException("i", "Index is out of range");
+                throw new ArgumentOutOfRangeException("Index " + i + " is out of range");
             }
+            int index;
+            Node nodeToBeInsert;
+            List<Node> path;
 
-            //making new node using string S
-            Rope R1 = new Rope(S);
+            (Node leftTree, Node rightTree) = Split(Root, i);
+            Node insertNode = Build(S);
 
-            // Split nodes if necessary to create space for the new substring
-            SplitNode splitResult = SplitNode(Root, i);
-            RopeNode R2 = splitResult.Left;
-            RopeNode R3 = splitResult.Right;
-
-            // Concatenate R1, R2, and R3 to form the new rope
-            RopeNode newRoot = Concatenate(ConcatenateNodes(R1.Root, R2), R3);
-
-            // Update the root of the rope
-            Root = newRoot;
+            Node tempLeftTree = Concatenate(leftTree, insertNode);
+            Root = Concatenate(tempLeftTree, rightTree);
         }
+
+        // Delete the substring S[i,j]
         public void Delete(int i, int j)
         {
-            if (i < 0 || j >= S.Length || i > j)
+            // validate data
+            if (i < 0 || i > Root.Weight || j < 0 || j > Root.Weight)
             {
-                throw new ArgumentOutOfRangeException("i or j", "Indices are out of range");
+                throw new ArgumentOutOfRangeException("Index i " + i + " or j " + j + " is out of range");
             }
-
-            // Split the current rope at indices i - 1 and j to give ropes R1, R2, and R3
-            SplitNodeResult splitResult1 = SplitNode(Root, i);
-            SplitNodeResult splitResult2 = SplitNode(splitResult1.Right, j - i + 1);
-
-            RopeNode R1 = splitResult1.Left;
-            RopeNode R2 = splitResult2.Left;
-            RopeNode R3 = splitResult2.Right;
-
-            // Concatenate R1 and R3
-            RopeNode newRoot = ConcatenateNodes(R1, R3);
-
-            // Update the root of the current rope
-            Root = newRoot;
+            // split the root at i to get leftTree and rightTree
+            (Node leftTree, Node rightTree) = Split(Root, i);
+            // split the rightTree at j - i to get the remainning rightTree
+            (_, Node rightTree2) = Split(rightTree, j - i);
+            Root = Concatenate(leftTree, rightTree2);
         }
 
-        //Substrings
-        public string subString(int i, int j)
+        // given i, find the leaf node
+        private (int, Node, List<Node>) TravelToIndex(Node node, int i)
         {
-            if (i < 0 || j >= S.Length || i > j)
-            {
-                throw new ArgumentOutOfRangeException("i or j", "Indices are out of range");
-            }
-
-            // Traverse the rope to find the substring
-            StringBuilder substringBuilder = new StringBuilder();
-            TraverseForSubstring(Root, i, j, substringBuilder);
-
-            // Return the constructed substring
-            return substringBuilder.ToString();
-        }
-
-
-        public int Find(string S)
-        {
-            int i = 0;
-            //Using a loop, similar to for loop but series of arrays
-            if (S == null)
-                return i; //Return the first occurence of the character c    
-            return -1;
-        }
-
-        public char CharAt(int i)
-        {
-            if (i < 0 || i >= S.Length)
+            // throw excpetion if out of range
+            if (i < 0 || i > node.Weight)
             {
                 throw new ArgumentOutOfRangeException("i", "Index is out of range");
             }
-
-            // Return the character at index i
-            return S[i];
-        }
-
-        public void Reverse()
-        {
-            //Possibly use for loop to find
-            char[] charArray = S.ToCharArray();
-            Array.Reverse(charArray);
-            S = new string(charArray);
-        }
-
-        public int Length(Node node)
-        {
-            //Find if not null
-            if(node == null)
-                return 0;
-            //See if node is leaf:
-            if (node is LeafNode leaf)
-                return leaf.Length;
-            else if(node is InternalNode internalNode) //Check if it is internam node:
-                return Length(internalNode.Left) + Length(internalNode.Right);
-            //Goes until the end
-            return -1;
-        }
-
-        public string ToString()
-        {
-            return "";
-        }
-
-        public void PrintRope()
-        {
-            PrintRope(Root);
-        }
-
-        private void PrintRope(RopeNode node)
-        {
-            //Showing the root
-            //If it is a leaf
-            if(node.Left != null || node.Right != null )
+            // store path of node travelled
+            List<Node> path = new List<Node>();
+            Node tempRoot = node;
+            // continue until leaf node is reached
+            while (tempRoot.Left != null || tempRoot.Right != null)
             {
-                Console.WriteLine($"Lead Node: Length {node.Left.Weight}, String={node.Left.ToString()}");
-            }
-               
-            //If it is a internal node
-            else
-            {
-                Console.WriteLine("Internal Node: ");
-                Console.WriteLine("Left Child: ");
-                PrintRope(node.Left);
-                Console.WriteLine("Right Child:");
-                PrintRope(node.Right);
-            }
-        }
-
-        //Node
-        public class Node
-        {
-            public string s { get; set; }
-            public int Length { get; set; }
-            public RopeNode Left { get; set; }
-            public RopeNode Right { get; set; }
-            public Node()
-            {
-                this.s = s;
-                this.Length = 0;
-                this.Left = Left;
-                this.Right = Right;
-            }
-
-            //Leaf and internal nodes
-            public class LeafNode : Node
-            {
-                public int Length { get; set; }
-                public string Text { get; set; }
-                public LeafNode(int length, string text)
+                // turn left if weight of the left child > i
+                if (tempRoot.Left != null && tempRoot.Left.Weight > i)
                 {
-                    Length = length;
-                    Text = text;
+                    path.Add(tempRoot);
+                    tempRoot = tempRoot.Left;
+
                 }
-                public string GetString()
+                else
                 {
-                    return Text + Length.ToString();
+                    // minus i the weight of left child and turn right
+                    i -= tempRoot.Left?.Weight ?? 0;
+                    path.Add(tempRoot);
+                    tempRoot = tempRoot.Right;
+
                 }
             }
+            path.Add(tempRoot);
+            Console.WriteLine(tempRoot.PartOfString[i]);
+            // return index of i in that substring and node containing it
+            return (i, tempRoot, path);
+        }
 
-            public class InternalNode : Node
+        // get the substring of rope start at i and end at j
+        public string Substring(int i, int j)
+        {
+            if (i + j >= Root.Weight)
             {
-                public Node Left { get; set; }
-                public Node Right { get; set; }
-                //Constructor
-                public InternalNode(int length)
-                {
-                    Left = null;
-                    Right = null;
-                }
-
-                public string GetString()
-                {
-                    return Left.GetString() + Right.GetString();
-                }
-            }
-
-            public string GetString()
-            {
+                Console.WriteLine("i + j >= length of rope is not allowed");
                 return "";
             }
 
-            //Making internal node & child nodes?
-        }
+            // variable to store the result to be return
+            string tempString = "";
 
-        public Node Build(string s, int i, int e)
-        {
-            //if start(i) is larger than end(j):
-            if (i > e)
-                return null;
-
-            //Base case
-            int THERESHOLD = 5;
-            int j = 5;
-           
-            if (e - i + 1 <= THERESHOLD)
-                return new LeafNode( (i-e), " " )
+            //loop until the entire substring is formed
+            while (j >= i)
+            {
+                int index;
+                Node node;
+                // traverse to node storing index i
+                (index, node, _) = TravelToIndex(Root, i);
+                // if i + node.PartOfString.Length < j + 1, need to get next node after this
+                if (node.PartOfString.Substring(index).Length < j - i + 1)
                 {
-                    Length = j - s.Length + 1,
-                    Text = s.Substring(i, e - i + 1)
-                };
-            //Mid point
-            int mid = i + (e - i) / 2;
-
-            Node leftNode = Build(s, i, mid);
-            Node rightNode = Build(s, mid + 1, e);
-
-            //Return to internalNode:
-            return new InternalNode(S.Length)
-            {
-                Left = leftNode,
-                Right = rightNode
-            };
-        }
-        public Node Concatenate(Node p, Node q)
-        {
-            //Setting is p and q are null
-            if (p == null) return q;
-            if (q == null) return p;
-            //Check to reblance
-            if ((p.Length + q.Length) < p.Length)
-            {
-                Node tempp = p; tempp.Length = p.Length - 1;
-                Node Left = Concatenate(p, tempp);
-                Node Right = q;
-
-                return new InternalNode(S.Length);
-            }
-            else
-            {
-                return new InternalNode(S.Length)
+                    // increment i by length of string
+                    i += node.PartOfString.Substring(index).Length;
+                    // add the string in the variable being returned
+                    tempString += node.PartOfString.Substring(index);
+                }
+                // end of loop, the last node needed is got
+                else
                 {
-                    Left = p,
-                    Right = q
-                };
+                    // add the remaining required substring to the variable being returned
+                    tempString += node.PartOfString.Substring(index, j - i + 1);
+                    i = j + 1;
+                }
+                //tempString += node.PartOfString.Substring(index);
             }
+            return tempString;
         }
 
-        // Split
-        private RopeNode Split(RopeNode node, int index, out RopeNode leftRoot)
+        // find starting index of S in the rope
+        public int Find(string S)
+        {
+            // check if S.length > 0
+            if (S.Length == 0)
+            {
+                return -1;
+            }
+            // get the index of S[0] in the rope
+            int indexOfFirstChar = this.IndexOf(S[0]);
+            while (indexOfFirstChar != -1)
+            {
+                // get substring start at indexOfFirstChar with length S.length
+                string candidate = this.Substring(indexOfFirstChar, indexOfFirstChar + S.Length);
+                // if match return indexOfFirstChar
+                if (candidate.Equals(S))
+                {
+                    return indexOfFirstChar;
+                }
+                indexOfFirstChar = this.IndexOf(S[0], indexOfFirstChar + 1);
+            }
+            //string entireString = Root.ToString();
+            //int index = entireString.IndexOf(S);
+            return -1;
+        }
+
+        // find character at index i
+        public char CharAt(int i)
+        {
+            // check is i valid
+            if (i < 0 || i > Root.Weight)
+            {
+                throw new ArgumentOutOfRangeException("i", "Index is out of range");
+            }
+
+            Node tempRoot = Root;
+            // traverse to leaf node
+            while (tempRoot.Left != null || tempRoot.Right != null)
+            {
+                // turn left if weight of left child < i
+                if (tempRoot.Left != null && tempRoot.Left.Weight > i)
+                {
+                    tempRoot = tempRoot.Left;
+
+                }
+                else
+                {
+                    // minus i by weight of left child and turn right
+                    i -= tempRoot.Left?.Weight ?? 0;
+                    tempRoot = tempRoot.Right;
+
+                }
+            }
+            // return the character at index i
+            return tempRoot.PartOfString[i];
+        }
+
+        // find index of character in rope
+        public int IndexOf(char c)
+        {
+            int i = 0;
+            // loop for entire string
+            while (i < Root.Weight)
+            {
+                int index;
+                Node tempNode;
+                // travel to node by i
+                (index, tempNode, _) = TravelToIndex(Root, i);
+                // compare string in tempNode one by one to check is = c
+                for (int j = index; j < tempNode.PartOfString.Length; j++)
+                {
+                    // return if match
+                    if (tempNode.PartOfString[j].Equals(c))
+                    {
+                        return i + j;
+                    }
+                }
+                // increment i to search for next node
+                i += tempNode.PartOfString.Length;
+            }
+            return -1;
+        }
+
+        // find index of character in rope after index
+        private int IndexOf(char c, int startingIndex)
+        {
+            int i = startingIndex;
+            // loop for entire string
+            while (i < Root.Weight)
+            {
+                int index;
+                Node tempNode;
+                // travel to node by i
+                (index, tempNode, _) = TravelToIndex(Root, i);
+                // compare string in tempNode one by one to check is = c
+                for (int j = index; j < tempNode.PartOfString.Length; j++)
+                {
+                    // return if match
+                    if (tempNode.PartOfString[j].Equals(c))
+                    {
+                        return i + j;
+                    }
+                }
+                // increment i to search for next node
+                i += tempNode.PartOfString.Length;
+            }
+            return -1;
+        }
+
+        // reverse the string of the rope
+        public void Reverse()
+        {
+            // do nothing if the rope is empty
+            if (Root.Weight == 0) return;
+            String S = Root.ToString();
+            // extract the entire string
+            char[] charArray = S.ToString().ToCharArray();
+            // reverse the string
+            Array.Reverse(charArray);
+            // build a new rope for Root
+            Root = Build(charArray.ToString());
+        }
+
+        // return the length of rope
+        public int Length()
+        {
+            return Root.Weight;
+        }
+
+        // return string of rope
+        public override string ToString()
+        {
+            string output = "";
+            ToString(Root, ref output);
+            return output;
+        }
+
+        // return string of rope
+        private void ToString(Node node, ref string output)
+        {
+            // return if node is null
+            if (node == null)
+            {
+                return;
+            }
+            // if is leaf node, extract its string and add to output
+            if (node.Left == null && node.Right == null)
+            {
+                //Console.WriteLine(node.PartOfString);
+                output += node.PartOfString;
+                return;
+            }
+
+            // inorder traveral
+            ToString(node.Left, ref output);
+            ToString(node.Right, ref output);
+            return;
+        }
+
+        private Node Rebalance()
+        {
+            String entireString = Root.ToString();
+            Node balancedNode = Build(entireString);
+            return balancedNode;
+        }
+
+        public void printRope()
+        {
+            PrintRope(Root, "");
+        }
+        private void PrintRope(Node node, string indent)
         {
             if (node == null)
             {
-                leftRoot = null;
-                return null;
+                return;
             }
 
-            if (node.IsLeaf())
-            {
-                if (index >= node.Weight) // Entire node is in the left part
-                {
-                    leftRoot = node;
-                    return null; // Nothing on the right
-                }
-                else if (index == 0) // Entire node is in the right part
-                {
-                    leftRoot = null;
-                    return node;
-                }
-                else
-                {
-                    // Splitting a leaf node
-                    string leftData = node.Data.Substring(0, index);
-                    string rightData = node.Data.Substring(index);
+            PrintRope(node.Right, indent + "  ");
 
-                    leftRoot = new RopeNode(leftData);
-                    return new RopeNode(rightData);
-                }
-            }
+            Console.WriteLine(indent + node.ToString());
 
-            if (index < node.Weight)
-            {
-                // Split index is within the left subtree
-                RopeNode tempRight;
-                RopeNode newLeft = Split(node.Left, index, out tempRight);
-                leftRoot = newLeft;
-
-                if (tempRight == null)
-                {
-                    return node.Right; // Right subtree remains unchanged
-                }
-                else
-                {
-                    node.Left = tempRight; // Update left child of the node
-                                           // Recalculate weight for the current node as it may have changed
-                    node.Weight = CalculateTotalWeight(tempRight);
-                    return node; // Node now represents the right part
-                }
-            }
-            else
-            {
-                // Split index is within the right subtree or exactly at the weight
-                index -= node.Weight; // Adjust index relative to the right subtree
-                RopeNode tempLeft;
-                RopeNode newRight = Split(node.Right, index, out tempLeft);
-
-                if (tempLeft == null)
-                {
-                    leftRoot = node; // Left part includes the current node and its left subtree
-                    return newRight; // Right part is unchanged
-                }
-                else
-                {
-                    // Create a new node for the left part including the original left subtree
-                    // and the left part of the split right subtree
-                    leftRoot = new RopeNode(null)
-                    {
-                        Left = node.Left,
-                        Right = tempLeft,
-                        Weight = node.Weight // Weight remains the same for the left part
-                    };
-                    return newRight; // The right part of the split right subtree
-                }
-            }
+            PrintRope(node.Left, indent + "  ");
         }
 
-        public Node Rebalance()
+        public class Node
         {
-            //Substr, concat(rope 1 and rope 2)
-            //Let
-            //If left:
-            //Do rope 1
-            //If right
-            //Do rope 2
-            // else
-            //subtract rope2 - rope1 - left rope
-            //in
-            //Concat left and right
-            Node rt = new Node(); //No idea what replacement
-            rt.Length = Root.Weight;
-            rt.s = Convert.ToString(Root.Value);
-            return rt = Rebalance(rt);
-        }
+            public string PartOfString { get; set; }
+            public Node Left;
+            public Node Right;
+            //public Node Parent;
+            public int Weight;
 
-        private Node Rebalance(Node node)
-        {
-            if(node is InternalNode internalNode)
+            public Node()
             {
-                Node left = Rebalance(internalNode.Left);
-                Node right = Rebalance(internalNode.Right);
 
-                return Concatenate(left, right);
             }
 
-            //Returning
-            return node;
-            
-        }
-
-        public Node CompressPath(Node node)
-        {
-            if (node is LeafNode || node == null)
+            public Node(string s)
             {
-                return node;
-            }
-            node.Left = CompressPath(node.Left);
-            node.Right = CompressPath(node.Right);
-            if (node.Left == null && node.Right != null) //Check if right child exists
-                return node.Right;
-            else if (node.Left != null && node.Right == null) //Check if left child exists
-                return node.Left;
-            return node;
-        }
-
-        private Node CombineSiblings(Node node)
-        {
-            if(node is InternalNode internalNode)
-            {
-                if(internalNode.Left != null && internalNode.Right != null && 
-                    (internalNode.Left.Length + internalNode.Right.Length <= 5))
+                this.PartOfString = s;
+                if (s != null)
                 {
-                    Node combinedNode = new InternalNode()
-                    {
-                        Left = internalNode.Left,
-                        Right = internalNode.Right
-                    };
-
-                    return combinedNode;
-                }
-                else
-                {
-                    internalNode.Left = CombineSiblings(internalNode.Left);
-                    internalNode.Right = CombineSiblings(internalNode.Right);
+                    this.Weight = s.Length;
                 }
             }
-            return node;
         }
 
     }
