@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,11 +19,13 @@ namespace COIS3020_Assignment2_DCP {
         public int Weight { get; set; } // Holds the total length of all characters in the left subtree
         public RopeNode Left { get; set; }
         public RopeNode Right { get; set; }
+        public bool IsLeaf() => Value != null;
 
         public RopeNode(string value)
         {
             Value = value;
-            Weight = value.Length;
+            Weight = value != null ? value.Length : 0;
+            Left = Right = null;
         }
     }
     public class Rope
@@ -93,12 +96,12 @@ namespace COIS3020_Assignment2_DCP {
             Rope R1 = new Rope(S);
 
             // Split nodes if necessary to create space for the new substring
-            SplitNodeResult splitResult = SplitNode(Root, i);
+            SplitNode splitResult = SplitNode(Root, i);
             RopeNode R2 = splitResult.Left;
             RopeNode R3 = splitResult.Right;
 
             // Concatenate R1, R2, and R3 to form the new rope
-            RopeNode newRoot = ConcatenateNodes(ConcatenateNodes(R1.Root, R2), R3);
+            RopeNode newRoot = Concatenate(ConcatenateNodes(R1.Root, R2), R3);
 
             // Update the root of the rope
             Root = newRoot;
@@ -219,11 +222,14 @@ namespace COIS3020_Assignment2_DCP {
         {
             public string s { get; set; }
             public int Length { get; set; }
+            public RopeNode Left { get; set; }
+            public RopeNode Right { get; set; }
             public Node()
             {
                 this.s = s;
                 this.Length = 0;
-
+                this.Left = Left;
+                this.Right = Right;
             }
 
             //Leaf and internal nodes
@@ -430,5 +436,45 @@ namespace COIS3020_Assignment2_DCP {
             return node;
             
         }
+
+        public Node CompressPath(Node node)
+        {
+            if (node is LeafNode || node == null)
+            {
+                return node;
+            }
+            node.Left = CompressPath(node.Left);
+            node.Right = CompressPath(node.Right);
+            if (node.Left == null && node.Right != null) //Check if right child exists
+                return node.Right;
+            else if (node.Left != null && node.Right == null) //Check if left child exists
+                return node.Left;
+            return node;
+        }
+
+        private Node CombineSiblings(Node node)
+        {
+            if(node is InternalNode internalNode)
+            {
+                if(internalNode.Left != null && internalNode.Right != null && 
+                    (internalNode.Left.Length + internalNode.Right.Length <= 5))
+                {
+                    Node combinedNode = new InternalNode()
+                    {
+                        Left = internalNode.Left,
+                        Right = internalNode.Right
+                    };
+
+                    return combinedNode;
+                }
+                else
+                {
+                    internalNode.Left = CombineSiblings(internalNode.Left);
+                    internalNode.Right = CombineSiblings(internalNode.Right);
+                }
+            }
+            return node;
+        }
+
     }
 }
