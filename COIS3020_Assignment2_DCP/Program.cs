@@ -11,7 +11,7 @@ public class Program
         Console.WriteLine();
 
         Console.WriteLine("String after inserting test test test in index 14:");
-        rope.Insert("test test test", 14);
+        rope.Insert("test test test ", 14);
         Console.WriteLine(rope.ToString());
         Console.WriteLine();
         Console.WriteLine("Substring:");
